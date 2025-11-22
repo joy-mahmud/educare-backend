@@ -1,0 +1,95 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pkl
+*.log
+
+# Django
+*.sqlite3
+db.sqlite3
+media/
+static/
+staticfiles/
+
+# Environment variables
+.env
+*.env
+
+# Virtual environment
+venv/
+env/
+.venv/
+ENV/
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+
+# Byte-compiled / compiled / cache
+*.pyc
+*.pyd
+*.pyo
+*.pyd
+*.pyo
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Logs
+*.log
+log/
+logs/
+
+# Django local cache
+*.mo
+*.pot
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Backup files
+*.bak
+*.tmp
+
+# pytest / tests
+.pytest_cache/
+.coverage
+htmlcov/
+.coverage.*
+
+# Pipenv
+Pipfile.lock
+
+# MyPy
+.mypy_cache/
+
+# Ruff / Lint Cache
+.ruff_cache/
+
+# JetBrains
+.idea/
+
+# Node (if frontend exists inside backend project)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Docker
+docker-compose.override.yml
