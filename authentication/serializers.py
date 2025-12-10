@@ -22,3 +22,22 @@ class SetPasswordSerializer(serializers.Serializer):
         auth.set_password(password)
 
         return auth
+    
+class StudentLoginSerializer(serializers.Serializer):
+    phone = serializers.CharField()
+    password = serializers.CharField()
+
+    def validate(self, data):
+        phone = data['phone']
+        password = data['password']
+        
+        try:
+            auth = StudentAuth.objects.get(phone=phone)
+        except StudentAuth.DoesNotExist:
+            serializers.ValidationError("Please set password first")
+        
+        if not auth.checking_password(password):
+            raise serializers.ValidationError("Invalid password")
+        
+        data['auth'] = auth
+        return data
