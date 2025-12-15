@@ -11,3 +11,16 @@ class PaymentSerializer(serializers.ModelSerializer):
             "transactionId",
             "paymentMethod"
         ]
+
+class StudentPaymentDetailsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Payment
+        fields = [
+            'id',
+            'amount',
+            'phoneNumber',
+            'transactionId',
+            'paymentMethod',
+            'status',
+            'createdAt',
+        ]

@@ -1,9 +1,12 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+import jwt
+from datetime import datetime, timedelta,timezone
+from django.conf import settings
 
 from .serializers import SetPasswordSerializer,StudentLoginSerializer
-from rest_framework_simplejwt.tokens import RefreshToken
+
 class SetPasswordView(APIView):
     def post(self,request):
         serializer = SetPasswordSerializer(data=request.data)
@@ -26,9 +29,14 @@ class StudentLoginView(APIView):
 
         auth = serializer.validated_data['auth']
         student = auth.student  # your custom logic
-
+        payload = {
+            "student_id": student.id,
+            "phone": auth.phone,
+            "iat": datetime.now(timezone.utc),
+            "exp": datetime.now(timezone.utc) + timedelta(days=7),
+        }
+        access_token = jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm="HS256")
         # Create JWT tokens
-        refresh = RefreshToken.for_user(student)
 
         return Response({
             "message": "Login successful",
@@ -38,10 +46,7 @@ class StudentLoginView(APIView):
                 "mobile": student.mobile,
                 # add any fields you want
             },
-            "tokens": {
-                "refresh": str(refresh),
-                "access": str(refresh.access_token),
-            }
+            "token": access_token
         }, status=status.HTTP_200_OK)
 
 
