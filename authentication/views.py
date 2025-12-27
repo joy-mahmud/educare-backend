@@ -5,7 +5,7 @@ import jwt
 from datetime import datetime, timedelta,timezone
 from django.conf import settings
 
-from .serializers import SetPasswordSerializer,StudentLoginSerializer
+from .serializers import SetPasswordSerializer,StudentLoginSerializer,TeacherLoginSerializer,TeacherRegistrationSerializer
 
 class SetPasswordView(APIView):
     def post(self,request):
@@ -47,6 +47,51 @@ class StudentLoginView(APIView):
                 # add any fields you want
             },
             "token": access_token
+        }, status=status.HTTP_200_OK)
+
+class TeacherRegistrationView(APIView):
+    def post(self, request):
+        serializer = TeacherRegistrationSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        auth = serializer.save()
+
+        return Response({
+            "message": "Registration successful",
+            "teacher": {
+                "teacherId": auth.teacher.teacherId,
+                "name": auth.teacher.name,
+                "email": auth.email,
+                "phone": auth.teacher.phone,
+                "dateOfBirth": auth.teacher.dateOfBirth
+            },
+            "createdAt": auth.createdAt
+        }, status=status.HTTP_201_CREATED)
+
+class TeacherLoginView(APIView):
+    def post(self, request):
+        serializer = TeacherLoginSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        auth = serializer.validated_data["auth"]
+        teacher = auth.teacher
+
+        payload = {
+            "teacher_id": teacher.id,
+            "role": teacher.role,
+            "exp": datetime.now(timezone.utc) + timedelta(days=7),
+            "iat": datetime.now(timezone.utc),
+        }
+
+        token = jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm="HS256")
+
+        return Response({
+            "message": "Login successful",
+            "teacher": {
+                "teacherId": teacher.teacherId,
+                "name": teacher.name,
+                "email": auth.email,
+            },
+            "token": token
         }, status=status.HTTP_200_OK)
 
 
