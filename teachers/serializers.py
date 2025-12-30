@@ -21,7 +21,7 @@ class TeacherCreateSerializer(serializers.ModelSerializer):
             "role",
             "dateOfBirth",
         ]
-        read_only_fields = ("teacherId")
+        read_only_fields = ("teacherId",)
 
     def to_internal_value(self, data):
         data = data.copy()
