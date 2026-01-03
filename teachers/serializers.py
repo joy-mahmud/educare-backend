@@ -33,3 +33,16 @@ class TeacherCreateSerializer(serializers.ModelSerializer):
             data["subject"] = None
 
         return super().to_internal_value(data)
+class AllTeacherInformationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Teacher
+        fields = [
+            "id",
+            "teacherId",
+            "name",
+            "phone",
+            "subject",
+            "role",
+            "dateOfBirth",
+            "createdAt"
+        ]
