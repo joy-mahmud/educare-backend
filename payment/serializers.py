@@ -24,3 +24,19 @@ class StudentPaymentDetailsSerializer(serializers.ModelSerializer):
             'status',
             'createdAt',
         ]
+class AdminPaymentListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Payment
+        fields = [
+            "id",
+            "phoneNumber",
+            "amount",
+            "status",
+            "transactionId",
+            "paymentMethod",
+            "createdAt",
+        ]
+class PaymentStatusUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Payment
+        fields = ['status']
