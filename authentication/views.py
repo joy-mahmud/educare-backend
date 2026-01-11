@@ -30,7 +30,9 @@ class StudentLoginView(APIView):
         auth = serializer.validated_data['auth']
         student = auth.student  # your custom logic
         payload = {
+            "user_type": "student",
             "student_id": student.id,
+            "role":"student",
             "phone": auth.phone,
             "iat": datetime.now(timezone.utc),
             "exp": datetime.now(timezone.utc) + timedelta(days=7),
@@ -76,6 +78,7 @@ class TeacherLoginView(APIView):
         teacher = auth.teacher
 
         payload = {
+            "user_type": "teacher",
             "teacher_id": teacher.id,
             "role": teacher.role,
             "exp": datetime.now(timezone.utc) + timedelta(days=7),
