@@ -7,7 +7,7 @@ class PaymentSerializer(serializers.ModelSerializer):
         fields =[
             "phoneNumber",
             "amount",
-            "status",
+            "payment_breakdown",
             "transactionId",
             "paymentMethod"
         ]

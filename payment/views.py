@@ -42,6 +42,47 @@ class StudentPaymentDetailsView(APIView):
         serializer = StudentPaymentDetailsSerializer(payments,many=True)
 
         return Response(serializer.data)
+class StudentPaymentStatusView(APIView):
+    def get(self, request):
+        phone = request.GET.get("phone")
+
+        payments = Payment.objects.filter(phoneNumber=phone, status="completed")
+
+        paid_data = {
+            "application": False,
+            "admission": False,
+            "registration": False,
+            "exam_first": False,
+            "exam_second": False,
+            "tuition_months": []
+        }
+
+        for payment in payments:
+            bd = payment.payment_breakdown
+
+            if bd.get("application_fee", 0) > 0:
+                paid_data["application"] = True
+
+            if bd.get("admission_fee", 0) > 0:
+                paid_data["admission"] = True
+
+            if bd.get("registration_fee", 0) > 0:
+                paid_data["registration"] = True
+
+            exam = bd.get("exam_fee")
+            if exam:
+                if exam.get("first_semester", 0) > 0:
+                    paid_data["exam_first"] = True
+                if exam.get("second_semester", 0) > 0:
+                    paid_data["exam_second"] = True
+
+            tuition = bd.get("tuition_fee")
+            if tuition:
+                paid_data["tuition_months"].extend(tuition.get("months", []))
+
+        paid_data["tuition_months"] = list(set(paid_data["tuition_months"]))
+
+        return Response(paid_data)
 class AdminPaymentListView(APIView):
     authentication_classes = [TeacherJWTAuthentication]
     permission_classes = [IsAdminTeacher]

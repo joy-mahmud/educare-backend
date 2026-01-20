@@ -7,6 +7,7 @@ class Payment(models.Model):
     
     phoneNumber = models.CharField(max_length=20)
     amount = models.DecimalField(max_digits=10,decimal_places=2)
+    payment_breakdown = models.JSONField(null=True,blank=True) 
     transactionId = models.CharField(max_length=100)
     paymentMethod = models.CharField(max_length=50)
     createdAt = models.DateTimeField(auto_now_add=True)
