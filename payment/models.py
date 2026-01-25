@@ -12,6 +12,32 @@ class Payment(models.Model):
     paymentMethod = models.CharField(max_length=50)
     createdAt = models.DateTimeField(auto_now_add=True)
     status = models.CharField(max_length=50,default='pending')
+    slip = models.ForeignKey(
+    "PaymentSlip",
+    on_delete=models.SET_NULL,
+    null=True,
+    blank=True,
+    related_name="payments"
+    )
     
     def __str__(self):
         return f"{self.student.studentName} - {self.amount}"  
+class PaymentSlip(models.Model):
+    student = models.ForeignKey(Student, on_delete=models.CASCADE)
+    year = models.PositiveIntegerField()
+
+    memo_number = models.CharField(max_length=30, unique=True)
+
+    total_paid = models.DecimalField(max_digits=10, decimal_places=2)
+    total_payable = models.DecimalField(max_digits=10, decimal_places=2)
+    due_amount = models.DecimalField(max_digits=10, decimal_places=2)
+
+    breakdown = models.JSONField()
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return self.memo_number

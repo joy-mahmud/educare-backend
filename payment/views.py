@@ -7,9 +7,12 @@ from students.models import Student
 from .serializers import PaymentSerializer,StudentPaymentDetailsSerializer,AdminPaymentListSerializer,PaymentStatusUpdateSerializer
 from authentication.authenticate import StudentJWTAuthentication , TeacherJWTAuthentication
 from authentication.permission import IsStudentAuthenticated,IsAdminTeacher
-from .models import Payment
+from .models import Payment,PaymentSlip
 from django.db.models import Case, When, Value, IntegerField
 from .pagination import AdminPaymentListPagination
+from django.db import transaction
+from django.db.models import Sum
+from .payment_utils import merge_payment_breakdowns,calculate_total_payable,generate_memo_number,extract_paid_fees
 # Create your views here.
 
 class PaymentCreateView(APIView):
@@ -125,3 +128,86 @@ class PaymentStatusUpdateView(APIView):
             )
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class PaymentSlipAPIView(APIView):
+
+    def post(self, request):
+        phone = request.data.get("phoneNumber")
+        year = int(request.data.get("year"))
+
+        if not phone or not year:
+            return Response(
+                {"message": "phoneNumber and year are required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        payments = Payment.objects.filter(
+            phoneNumber=phone,
+            createdAt__year=year,
+            status="completed"
+        ).order_by("createdAt")
+
+        if not payments.exists():
+            return Response(
+                {"message": "No payments found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        student = payments.first().student
+
+        new_payments = payments.filter(slip__isnull=True)
+
+        # CASE 1: New payments exist → generate new slip
+        if new_payments.exists():
+            breakdown = merge_payment_breakdowns(payments)
+
+            total_paid = payments.aggregate(
+                total=Sum("amount")
+            )["total"]
+
+            total_payable = calculate_total_payable(breakdown)
+            due_amount = total_payable - total_paid
+
+            with transaction.atomic():
+                slip = PaymentSlip.objects.create(
+                    student=student,
+                    year=year,
+                    memo_number=generate_memo_number(year),
+                    total_paid=total_paid,
+                    total_payable=total_payable,
+                    due_amount=due_amount,
+                    breakdown=breakdown
+                )
+
+                new_payments.update(slip=slip)
+
+        # CASE 2: No new payments → return latest slip
+        else:
+            slip = PaymentSlip.objects.filter(
+                student=student,
+                year=year
+            ).first()
+        paid_fees = extract_paid_fees(slip.breakdown)
+
+        return Response(
+            {
+            "memo_number": slip.memo_number,
+            "year": slip.year,
+            "student": {
+            "id": slip.student.id,
+            "name": slip.student.studentName,
+            "phone": slip.student.phoneNumber if hasattr(slip.student, "phoneNumber") else None
+            },
+
+            "total_paid": slip.total_paid,
+            "total_payable": slip.total_payable,
+            "due_amount": slip.due_amount,
+
+            "paid_fees": paid_fees,
+            
+            # (Optional) keep breakdown if admin/PDF needs it
+            "breakdown": slip.breakdown,
+            "created_at": slip.created_at
+            },
+            status=status.HTTP_200_OK
+        )
