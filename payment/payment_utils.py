@@ -49,27 +49,27 @@ def merge_payment_breakdowns(payments):
     )
     return merged
 
-def calculate_total_payable(breakdown):
-    total = 0
+# def calculate_total_payable(breakdown):
+#     total = 0
 
-    if breakdown["application_fee"] > 0:
-        total += ANNUAL_FEES["application_fee"]
+#     if breakdown["application_fee"] > 0:
+#         total += ANNUAL_FEES["application_fee"]
 
-    if breakdown["admission_fee"] > 0:
-        total += ANNUAL_FEES["admission_fee"]
+#     if breakdown["admission_fee"] > 0:
+#         total += ANNUAL_FEES["admission_fee"]
 
-    if breakdown["registration_fee"] > 0:
-        total += ANNUAL_FEES["registration_fee"]
+#     if breakdown["registration_fee"] > 0:
+#         total += ANNUAL_FEES["registration_fee"]
 
-    total += len(breakdown["tuition_fee"]["months"]) * ANNUAL_FEES["monthly_tuition"]
+#     total += len(breakdown["tuition_fee"]["months"]) * ANNUAL_FEES["monthly_tuition"]
 
-    if breakdown["exam_fee"]["first_semester"] > 0:
-        total += ANNUAL_FEES["exam_fee"]["first_semester"]
+#     if breakdown["exam_fee"]["first_semester"] > 0:
+#         total += ANNUAL_FEES["exam_fee"]["first_semester"]
 
-    if breakdown["exam_fee"]["second_semester"] > 0:
-        total += ANNUAL_FEES["exam_fee"]["second_semester"]
+#     if breakdown["exam_fee"]["second_semester"] > 0:
+#         total += ANNUAL_FEES["exam_fee"]["second_semester"]
 
-    return total
+#     return total
 
 def extract_paid_fees(breakdown):
     response = {}

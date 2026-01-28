@@ -12,7 +12,7 @@ from django.db.models import Case, When, Value, IntegerField
 from .pagination import AdminPaymentListPagination
 from django.db import transaction
 from django.db.models import Sum
-from .payment_utils import merge_payment_breakdowns,calculate_total_payable,generate_memo_number,extract_paid_fees
+from .payment_utils import merge_payment_breakdowns,generate_memo_number,extract_paid_fees
 # Create your views here.
 
 class PaymentCreateView(APIView):
@@ -165,8 +165,8 @@ class PaymentSlipAPIView(APIView):
                 total=Sum("amount")
             )["total"]
 
-            total_payable = calculate_total_payable(breakdown)
-            due_amount = total_payable - total_paid
+            #
+            due_amount = 0
 
             with transaction.atomic():
                 slip = PaymentSlip.objects.create(
@@ -174,7 +174,7 @@ class PaymentSlipAPIView(APIView):
                     year=year,
                     memo_number=generate_memo_number(year),
                     total_paid=total_paid,
-                    total_payable=total_payable,
+                    total_payable=None,
                     due_amount=due_amount,
                     breakdown=breakdown
                 )
@@ -196,7 +196,7 @@ class PaymentSlipAPIView(APIView):
             "student": {
             "id": slip.student.id,
             "name": slip.student.studentName,
-            "phone": slip.student.phoneNumber if hasattr(slip.student, "phoneNumber") else None
+            "phone":  phone
             },
 
             "total_paid": slip.total_paid,

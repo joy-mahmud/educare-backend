@@ -29,7 +29,7 @@ class PaymentSlip(models.Model):
     memo_number = models.CharField(max_length=30, unique=True)
 
     total_paid = models.DecimalField(max_digits=10, decimal_places=2)
-    total_payable = models.DecimalField(max_digits=10, decimal_places=2)
+    total_payable = models.DecimalField(max_digits=10, decimal_places=2,null=True,blank=True)
     due_amount = models.DecimalField(max_digits=10, decimal_places=2)
 
     breakdown = models.JSONField()
