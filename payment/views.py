@@ -46,10 +46,21 @@ class StudentPaymentDetailsView(APIView):
 
         return Response(serializer.data)
 class StudentPaymentStatusView(APIView):
-    def get(self, request):
-        phone = request.GET.get("phone")
+    def post(self, request):
+        phone = request.data.get("phoneNumber")
+        year = int(request.data.get("year"))
 
-        payments = Payment.objects.filter(phoneNumber=phone, status="completed")
+        if not phone or not year:
+            return Response(
+                {"message": "phoneNumber and year are required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        payments = Payment.objects.filter(
+            phoneNumber=phone,
+            createdAt__year=year,
+            status="completed"
+        ).order_by("createdAt")
 
         paid_data = {
             "application": False,
