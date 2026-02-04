@@ -40,3 +40,7 @@ class PaymentStatusUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Payment
         fields = ['status']
+class SinglePaymentGetSerializer(serializers.ModelSerializer):
+    class Meta:
+        model= Payment
+        fields = "__all__"

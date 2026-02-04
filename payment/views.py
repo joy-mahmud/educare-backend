@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from students.models import Student
-from .serializers import PaymentSerializer,StudentPaymentDetailsSerializer,AdminPaymentListSerializer,PaymentStatusUpdateSerializer
+from .serializers import PaymentSerializer,StudentPaymentDetailsSerializer,AdminPaymentListSerializer,PaymentStatusUpdateSerializer,SinglePaymentGetSerializer
 from authentication.authenticate import StudentJWTAuthentication , TeacherJWTAuthentication
 from authentication.permission import IsStudentAuthenticated,IsAdminTeacher
 from .models import Payment,PaymentSlip
@@ -222,3 +222,9 @@ class PaymentSlipAPIView(APIView):
             },
             status=status.HTTP_200_OK
         )
+class SinglePaymentGetAPIView(APIView):
+    def get(self,request,id):
+        payment = get_object_or_404(Payment, id=id)
+
+        serializer = SinglePaymentGetSerializer(payment)
+        return Response(serializer.data)
