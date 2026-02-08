@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'students',
     'teachers',
+    'academics',
     'payment',
     'authentication'
 ]
