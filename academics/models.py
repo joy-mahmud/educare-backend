@@ -22,9 +22,9 @@ class Subject(models.Model):
 
 class ClassSubject(models.Model):
     SUBJECT_TYPE_CHOICES = (
-        ("COMPULSORY", "Compulsory"),
-        ("GROUP_COMPULSORY", "Group Compulsory"),
-        ("ELECTIVE", "Elective"),
+        ("COMPULSORY", "compulsory"),
+        ("GROUP_COMPULSORY", "group compulsory"),
+        ("ELECTIVE", "elective"),
     )
 
     academic_class = models.ForeignKey(AcademicClass, on_delete=models.CASCADE)
@@ -41,8 +41,8 @@ class ClassSubject(models.Model):
 
 class StudentSubject(models.Model):
     SUBJECT_ROLE_CHOICES = (
-        ("MAIN", "Main"),
-        ("ELECTIVE", "Elective"),
+        ("MAIN", "main"),
+        ("ELECTIVE", "elective"),
     )
 
     student = models.ForeignKey(Student, on_delete=models.CASCADE)
