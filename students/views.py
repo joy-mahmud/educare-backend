@@ -23,3 +23,12 @@ class AllStudentInfoView(APIView):
 
         serializer = AllStudentInfoSerializer(page, many=True)
         return paginator.get_paginated_response(serializer.data) 
+
+class StudentsByClassAPIView(APIView):
+    def get(self, request, class_id):
+
+        students = Student.objects.select_related("studentClass").filter(studentClass_id=class_id)
+
+        serializer = StudentSerializer(students, many=True)
+
+        return Response(serializer.data, status=status.HTTP_200_OK)

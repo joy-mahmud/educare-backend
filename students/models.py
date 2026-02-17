@@ -1,7 +1,12 @@
 from django.db import models
 
 class Student(models.Model):
-    studentClass = models.OneToOneField("academics.AcademicClass",on_delete=models.CASCADE, null=True)
+    studentClass = models.ForeignKey(
+        "academics.AcademicClass",
+        on_delete=models.CASCADE,
+        related_name="students",
+        null=True
+    )
     studentName = models.CharField(max_length=255)
     mobile = models.CharField(max_length=20)
     email = models.EmailField(max_length=255, blank=True, null=True)
