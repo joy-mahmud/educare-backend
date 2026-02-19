@@ -12,7 +12,17 @@ class AllStudentInfoSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 class StudentsAccordingClassSerializer(serializers.ModelSerializer):
-    academic_class = AcademicClassSerializer(read_only=True)
+    group = serializers.CharField(
+        source="group.name",
+        read_only=True
+    )
+
     class Meta:
         model = Student
-        fields = "__all__"
+        fields = [
+            "id",
+            "studentName",
+            "mobile",
+            "studentClass",
+            "group",
+        ]
