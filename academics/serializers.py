@@ -79,3 +79,33 @@ class BulkResultCreateSerializer(serializers.Serializer):
             created_results.append(result)
 
         return created_results
+from rest_framework import serializers
+from .models import StudentResult
+
+class ResultViewSerializer(serializers.ModelSerializer):
+    student_id = serializers.IntegerField(
+        source="student_subject.student.id"
+    )
+    student_name = serializers.CharField(
+        source="student_subject.student.studentName"
+    )
+
+    subject = serializers.CharField(
+        source="student_subject.class_subject.subject.name"
+    )
+
+    class_name = serializers.CharField(
+        source="student_subject.class_subject.academic_class.name"
+    )
+
+    class Meta:
+        model = StudentResult
+        fields = [
+            "student_id",
+            "student_name",
+            "class_name",
+            "subject",
+            "exam",
+            "marks_obtained",
+            "grade",
+        ]
