@@ -46,8 +46,10 @@ class ViewResultAPIView(APIView):
     def post(self, request):
 
         class_id = request.data.get("class_id")
-        subject_id = request.data.get("subject_id")
+        class_subject_id = request.data.get("subject_id")
         exam = request.data.get("exam")
+        classSubject = ClassSubject.objects.get(id=class_subject_id)
+        subject_id = classSubject.subject_id
 
         if not class_id or not subject_id or not exam:
             return Response(
