@@ -7,6 +7,7 @@ class Student(models.Model):
         related_name="students",
         null=True
     )
+    rollNo = models.PositiveIntegerField(blank=True,null=True)
     group = models.ForeignKey(
         "academics.Group",
         on_delete=models.SET_NULL,

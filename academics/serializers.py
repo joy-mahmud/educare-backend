@@ -40,6 +40,7 @@ class StudentMarkSerializer(serializers.Serializer):
     student = serializers.IntegerField()
     marks_obtained = serializers.DecimalField(max_digits=5, decimal_places=2)
     grade = serializers.CharField()
+    gpa = serializers.DecimalField(max_digits=3, decimal_places=2)
 
 
 class BulkResultCreateSerializer(serializers.Serializer):
@@ -61,6 +62,7 @@ class BulkResultCreateSerializer(serializers.Serializer):
             student_id = item["student"]
             marks = item["marks_obtained"]
             grade = item["grade"]
+            gpa = item["gpa"]
             student = Student.objects.get(id=student_id)
 
             # Get or create StudentSubject
@@ -73,7 +75,8 @@ class BulkResultCreateSerializer(serializers.Serializer):
                 student_subject=student_subject,
                 exam=exam,
                 marks_obtained=marks,
-                grade=grade
+                grade=grade,
+                gpa = gpa
             )
 
             created_results.append(result)
@@ -108,4 +111,16 @@ class ResultViewSerializer(serializers.ModelSerializer):
             "exam",
             "marks_obtained",
             "grade",
+            "gpa"
+        ]
+
+class StudentExamResultSerializer(serializers.ModelSerializer):
+    subject = serializers.CharField(source="student_subject.class_subject.subject.name")
+    class Meta:
+        model = StudentResult
+        fields = [
+            "subject",
+            "marks_obtained",
+            "grade",
+            "gpa"
         ]

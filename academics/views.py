@@ -2,7 +2,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from .models import ClassSubject,StudentResult
-from .serializers import ClassSubjectSerializer,BulkResultCreateSerializer,ResultViewSerializer
+from .serializers import ClassSubjectSerializer,BulkResultCreateSerializer,ResultViewSerializer,StudentExamResultSerializer
 
 
 class ClassSubjectAPIView(APIView):
@@ -69,3 +69,29 @@ class ViewResultAPIView(APIView):
 
         serializer = ResultViewSerializer(results, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+class StudentExamResultAPIView(APIView):
+
+    def post(self, request):
+
+        student_id = request.data.get("student_id")
+        exam = request.data.get("exam")
+        print("student id:",student_id)
+        print("exam:",exam)
+
+        if not student_id or not exam:
+            return Response(
+                {"error": "student_id and exam are required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        results = StudentResult.objects.filter(
+            student_subject__student_id=student_id,
+            exam=exam
+        ).select_related(
+            "student_subject__class_subject__subject"
+        )
+
+        serializer = StudentExamResultSerializer(results, many=True)
+
+        return Response(serializer.data)
