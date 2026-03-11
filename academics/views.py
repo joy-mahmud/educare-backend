@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from .models import ClassSubject,StudentResult
 from .serializers import ClassSubjectSerializer,BulkResultCreateSerializer,ResultViewSerializer,StudentExamResultSerializer
-
+from django.db.models import Max, OuterRef, Subquery
 
 class ClassSubjectAPIView(APIView):
 
@@ -76,8 +76,6 @@ class StudentExamResultAPIView(APIView):
 
         student_id = request.data.get("student_id")
         exam = request.data.get("exam")
-        print("student id:",student_id)
-        print("exam:",exam)
 
         if not student_id or not exam:
             return Response(
@@ -85,11 +83,25 @@ class StudentExamResultAPIView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+        # Subquery to get highest marks per subject
+        highest_marks_subquery = StudentResult.objects.filter(
+            student_subject__class_subject__subject=OuterRef(
+                "student_subject__class_subject__subject"
+            ),
+            exam=exam
+        ).values(
+            "student_subject__class_subject__subject"
+        ).annotate(
+            highest=Max("marks_obtained")
+        ).values("highest")[:1]
+
         results = StudentResult.objects.filter(
             student_subject__student_id=student_id,
             exam=exam
         ).select_related(
             "student_subject__class_subject__subject"
+        ).annotate(
+            highest_marks=Subquery(highest_marks_subquery)
         )
 
         serializer = StudentExamResultSerializer(results, many=True)

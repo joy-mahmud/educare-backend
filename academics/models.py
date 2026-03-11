@@ -16,6 +16,7 @@ class Group(models.Model):
     
 class Subject(models.Model):
     name = models.CharField(max_length=100)
+    full_marks = models.IntegerField(max_length=3,default=100)
 
     def __str__(self):
         return self.name
@@ -71,6 +72,8 @@ class StudentResult(models.Model):
     marks_obtained = models.DecimalField(max_digits=5, decimal_places=2)
     grade = models.CharField(max_length=5, blank=True, null=True)
     gpa = models.DecimalField(max_digits=3,decimal_places=2,null=True,blank=True)
+    marks_cq = models.DecimalField(max_digits=5,decimal_places=2,null=True,blank=True)
+    marks_mcq =models.DecimalField(max_digits=5,decimal_places=2,null=True,blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
 

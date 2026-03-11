@@ -116,11 +116,15 @@ class ResultViewSerializer(serializers.ModelSerializer):
 
 class StudentExamResultSerializer(serializers.ModelSerializer):
     subject = serializers.CharField(source="student_subject.class_subject.subject.name")
+    full_marks = serializers.CharField(source="student_subject.class_subject.subject.full_marks")
+    highest_marks = serializers.DecimalField(max_digits=5, decimal_places=2)
     class Meta:
         model = StudentResult
         fields = [
             "subject",
             "marks_obtained",
+            "highest_marks",
+            "full_marks",
             "grade",
             "gpa"
         ]
