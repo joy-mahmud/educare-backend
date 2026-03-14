@@ -16,7 +16,7 @@ class Group(models.Model):
     
 class Subject(models.Model):
     name = models.CharField(max_length=100)
-    full_marks = models.IntegerField(max_length=3,default=100)
+    full_marks = models.IntegerField(default=100)
 
     def __str__(self):
         return self.name

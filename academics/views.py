@@ -3,8 +3,8 @@ from rest_framework.response import Response
 from rest_framework import status
 from .models import ClassSubject,StudentResult
 from .serializers import ClassSubjectSerializer,BulkResultCreateSerializer,ResultViewSerializer,StudentExamResultSerializer
-from django.db.models import Max, OuterRef, Subquery
-
+from django.db.models import Max, OuterRef, Subquery,Avg,Sum
+from .utils import calculate_final_gpa
 class ClassSubjectAPIView(APIView):
 
     def get(self, request, class_id):
@@ -83,7 +83,7 @@ class StudentExamResultAPIView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Subquery to get highest marks per subject
+        # Highest marks per subject
         highest_marks_subquery = StudentResult.objects.filter(
             student_subject__class_subject__subject=OuterRef(
                 "student_subject__class_subject__subject"
@@ -103,7 +103,27 @@ class StudentExamResultAPIView(APIView):
         ).annotate(
             highest_marks=Subquery(highest_marks_subquery)
         )
+        final_gpa = calculate_final_gpa(results)
 
         serializer = StudentExamResultSerializer(results, many=True)
 
-        return Response(serializer.data)
+        # Aggregate calculations
+        totals = results.aggregate(
+            total_obtained_marks=Sum("marks_obtained"),
+            total_gpa=Avg("gpa")
+        )
+
+        # Calculate total full marks
+        total_full_marks = sum(
+            r.student_subject.class_subject.subject.full_marks
+            for r in results
+        )
+
+        return Response({
+            "student_id": student_id,
+            "exam": exam,
+            "total_obtained_marks": totals["total_obtained_marks"],
+            "total_full_marks": total_full_marks,
+            "final_gpa": final_gpa,
+            "subjects_marks": serializer.data
+        })

@@ -25,4 +25,5 @@ class StudentsAccordingClassSerializer(serializers.ModelSerializer):
             "mobile",
             "studentClass",
             "group",
+            "academicYear"
         ]
