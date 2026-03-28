@@ -18,6 +18,14 @@ class Subject(models.Model):
     name = models.CharField(max_length=100)
     full_marks = models.IntegerField(default=100)
 
+    parent_subject = models.ForeignKey(
+        "self",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="parts"
+    )
+
     def __str__(self):
         return self.name
 
