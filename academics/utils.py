@@ -66,7 +66,6 @@ def calculate_final_gpa(results):
             avg_marks = total_marks / len(group_results)
 
             current_gp = marks_to_gpa(avg_marks)
-            print("group subject gpa:",current_gp)
 
         else:
             current_gp = float(group_results[0].gpa)
@@ -93,7 +92,6 @@ def calculate_final_gpa(results):
 
     if main_subject_count == 0:
         return 0.00
-
     final_result = (main_gp_sum + bonus_points) / main_subject_count
 
     final_gpa = min(5.00, final_result)
@@ -115,3 +113,102 @@ def marks_to_gpa(marks):
         return 1.0
     else:
         return 0.0
+
+def marks_to_grade(marks):
+    if marks >= 80:
+        return "A+"
+    elif marks >= 70:
+        return "A"
+    elif marks >= 60:
+        return "A-"
+    elif marks >= 50:
+        return "B"
+    elif marks >= 40:
+        return "C"
+    elif marks >= 33:
+        return "D"
+    else:
+        return "F"
+
+def gpa_to_grade(gpa):
+    if gpa >= 5.0:
+        return "A+"
+    elif gpa >= 4.0:
+        return "A"
+    elif gpa >= 3.5:
+        return "A-"
+    elif gpa >= 3.0:
+        return "B"
+    elif gpa >= 2.0:
+        return "C"
+    elif gpa >= 1.0:
+        return "D"
+    else:
+        return "F"
+
+def build_subjects_response(results):
+    subject_groups = defaultdict(list)
+
+    # Step 1: Group subjects
+    for r in results:
+        subject = r.student_subject.class_subject.subject
+        final_subject = subject.parent_subject or subject
+        subject_groups[final_subject].append(r)
+
+    response = []
+
+    # Step 2: Process each group
+    for subject, items in subject_groups.items():
+
+        # 👉 MULTI-PART SUBJECT (Bangla, English, etc.)
+        if len(items) > 1:
+
+            total_marks = sum(float(r.marks_obtained) for r in items)
+            avg_marks = total_marks / len(items)
+
+            combined_gpa = marks_to_gpa(avg_marks)
+            combined_grade = marks_to_grade(avg_marks)
+
+            parts = []
+
+            for r in items:
+                parts.append({
+                    "subject_name": r.student_subject.class_subject.subject.name,
+                    "full_marks": r.student_subject.class_subject.subject.full_marks,
+                    "highest_marks": float(r.highest_marks),
+                    "obtaining_marks": {
+                        "cq": float(r.marks_cq) if r.marks_cq else None,
+                        "mcq": float(r.marks_mcq) if r.marks_mcq else None,
+                        "ca": None,
+                        "prc": None,
+                    },
+                    "total_marks": float(r.marks_obtained)
+                })
+
+            response.append({
+                "subject_group_name": subject.name,
+                "combined_letter_grade": combined_grade,
+                "combined_grade_point": combined_gpa,
+                "parts": parts
+            })
+
+        # 👉 SINGLE SUBJECT
+        else:
+            r = items[0]
+
+            response.append({
+                "subject_name": subject.name,
+                "full_marks": subject.full_marks,
+                "highest_marks": float(r.highest_marks),
+                "obtaining_marks": {
+                    "cq": float(r.marks_cq) if r.marks_cq else None,
+                    "mcq": float(r.marks_mcq) if r.marks_mcq else None,
+                    "ca": None,
+                    "prc": None,
+                },
+                "total_marks": float(r.marks_obtained),
+                "letter_grade": r.grade,
+                "grade_point": float(r.gpa) if r.gpa else None
+            })
+
+    return response

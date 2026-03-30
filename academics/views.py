@@ -4,7 +4,7 @@ from rest_framework import status
 from .models import ClassSubject,StudentResult
 from .serializers import ClassSubjectSerializer,BulkResultCreateSerializer,ResultViewSerializer,StudentExamResultSerializer
 from django.db.models import Max, OuterRef, Subquery,Avg,Sum
-from .utils import calculate_final_gpa
+from .utils import calculate_final_gpa,build_subjects_response,gpa_to_grade
 class ClassSubjectAPIView(APIView):
 
     def get(self, request, class_id):
@@ -104,26 +104,40 @@ class StudentExamResultAPIView(APIView):
             highest_marks=Subquery(highest_marks_subquery)
         )
         final_gpa = calculate_final_gpa(results)
+        final_grade = gpa_to_grade(final_gpa)
 
         serializer = StudentExamResultSerializer(results, many=True)
 
-        # Aggregate calculations
-        totals = results.aggregate(
-            total_obtained_marks=Sum("marks_obtained"),
-            total_gpa=Avg("gpa")
+        subjects_marks = build_subjects_response(results)
+
+        # # Aggregate calculations
+        # totals = results.aggregate(
+        #     total_obtained_marks=Sum("marks_obtained"),
+        #     total_gpa=Avg("gpa")
+        # )
+
+        # # Calculate total full marks
+        # total_full_marks = sum(
+        #     r.student_subject.class_subject.subject.full_marks
+        #     for r in results
+        # )
+        total_obtained_marks = sum(
+            item.get("total_marks", sum(p["total_marks"] for p in item.get("parts", [])))
+            for item in subjects_marks
         )
 
-        # Calculate total full marks
         total_full_marks = sum(
-            r.student_subject.class_subject.subject.full_marks
-            for r in results
+            item.get("full_marks", sum(p["full_marks"] for p in item.get("parts", [])))
+            for item in subjects_marks
         )
 
         return Response({
             "student_id": student_id,
             "exam": exam,
-            "total_obtained_marks": totals["total_obtained_marks"],
+            # "total_obtained_marks": totals["total_obtained_marks"],
+            "total_obtained_marks": total_obtained_marks,
             "total_full_marks": total_full_marks,
             "final_gpa": final_gpa,
-            "subjects_marks": serializer.data
+            "final_grade":final_grade,
+            "subjects_marks": subjects_marks
         })
