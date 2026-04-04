@@ -39,6 +39,7 @@ class ClassSubject(models.Model):
     academic_class = models.ForeignKey(AcademicClass, on_delete=models.CASCADE)
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
     group = models.ForeignKey(Group, null=True, blank=True, on_delete=models.CASCADE)
+    order = models.IntegerField(null=True,blank=True)
 
     subject_type = models.CharField(
         max_length=20,

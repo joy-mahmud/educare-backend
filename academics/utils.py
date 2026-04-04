@@ -146,21 +146,27 @@ def gpa_to_grade(gpa):
     else:
         return "F"
 
+
 def build_subjects_response(results):
     subject_groups = defaultdict(list)
 
-    # Step 1: Group subjects
+    # Step 1: Group subjects (Bangla 1st + 2nd → Bangla)
     for r in results:
         subject = r.student_subject.class_subject.subject
         final_subject = subject.parent_subject or subject
         subject_groups[final_subject].append(r)
+        
 
-    response = []
-
+    processed_subjects = []
+    print(subject_groups)
     # Step 2: Process each group
     for subject, items in subject_groups.items():
 
-        # 👉 MULTI-PART SUBJECT (Bangla, English, etc.)
+        role = items[0].student_subject.role
+        class_subject_order = items[0].student_subject.class_subject.order
+        is_optional = role == "ELECTIVE"
+
+        # MULTI-PART SUBJECT (Bangla / English)
         if len(items) > 1:
 
             total_marks = sum(float(r.marks_obtained) for r in items)
@@ -185,18 +191,22 @@ def build_subjects_response(results):
                     "total_marks": float(r.marks_obtained)
                 })
 
-            response.append({
+            processed_subjects.append({
                 "subject_group_name": subject.name,
                 "combined_letter_grade": combined_grade,
                 "combined_grade_point": combined_gpa,
-                "parts": parts
+                "parts": parts,
+                "is_optional": is_optional,
+                "optional_tag": "Optional" if is_optional else None,
+                "role": role,
+                "order": class_subject_order
             })
 
-        # 👉 SINGLE SUBJECT
+        # SINGLE SUBJECT
         else:
             r = items[0]
 
-            response.append({
+            processed_subjects.append({
                 "subject_name": subject.name,
                 "full_marks": subject.full_marks,
                 "highest_marks": float(r.highest_marks),
@@ -208,7 +218,31 @@ def build_subjects_response(results):
                 },
                 "total_marks": float(r.marks_obtained),
                 "letter_grade": r.grade,
-                "grade_point": float(r.gpa) if r.gpa else None
+                "grade_point": float(r.gpa) if r.gpa else None,
+                "is_optional": is_optional,
+                "optional_tag": "Optional" if is_optional else None,
+                "role": role,
+                "order": class_subject_order
             })
 
-    return response
+    # Step 3: Sort by order
+    processed_subjects.sort(key=lambda x: x["order"] if x["order"] is not None else 999)
+
+    # Step 4: Move elective subjects to last
+    main_subjects = []
+    elective_subjects = []
+
+    for item in processed_subjects:
+        if item["role"] == "ELECTIVE":
+            elective_subjects.append(item)
+        else:
+            main_subjects.append(item)
+
+    final_subjects = main_subjects + elective_subjects
+
+    # Step 5: Remove helper fields
+    for item in final_subjects:
+        item.pop("order", None)
+        item.pop("role", None)
+
+    return final_subjects
