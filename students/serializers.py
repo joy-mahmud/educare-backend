@@ -22,6 +22,9 @@ class StudentsAccordingClassSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "studentName",
+            "fatherName",
+            "motherName",
+            "gender",
             "mobile",
             "studentClass",
             "group",
