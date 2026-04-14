@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.db import transaction
-from .models import AcademicClass, StudentResult, StudentSubject, ClassSubject
+from .models import AcademicClass, StudentResult, StudentSubject, ClassSubject,ExamRoutine
 from students.models import Student
 from django.db import transaction
 class AcademicClassSerializer(serializers.ModelSerializer):
@@ -127,4 +127,30 @@ class StudentExamResultSerializer(serializers.ModelSerializer):
             "full_marks",
             "grade",
             "gpa"
+        ]
+
+
+
+class ExamRoutineSerializer(serializers.ModelSerializer):
+    subject_name = serializers.CharField(
+        source="class_subject.subject.name",
+        read_only=True
+    )
+    class_name = serializers.CharField(
+        source="class_subject.academic_class.name",
+        read_only=True
+    )
+
+    class Meta:
+        model = ExamRoutine
+        fields = [
+            "id",
+            "class_subject",
+            "subject_name",
+            "class_name",
+            "exam_date",
+            "start_time",
+            "end_time",
+            "full_marks",
+            "order"
         ]

@@ -1,8 +1,8 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from .models import ClassSubject,StudentResult
-from .serializers import ClassSubjectSerializer,BulkResultCreateSerializer,ResultViewSerializer,StudentExamResultSerializer
+from .models import ClassSubject,StudentResult,ExamRoutine
+from .serializers import ClassSubjectSerializer,BulkResultCreateSerializer,ResultViewSerializer,StudentExamResultSerializer,ExamRoutineSerializer
 from django.db.models import Max, OuterRef, Subquery,Avg,Sum
 from .utils import calculate_final_gpa,build_subjects_response,gpa_to_grade
 class ClassSubjectAPIView(APIView):
@@ -140,4 +140,40 @@ class StudentExamResultAPIView(APIView):
             "final_gpa": final_gpa,
             "final_grade":final_grade,
             "subjects_marks": subjects_marks
+        })
+
+class ExamRoutineListAPIView(APIView):
+
+    def get(self, request):
+
+        class_id = request.query_params.get("class_id")
+        exam_id = request.query_params.get("exam_id")
+
+        if not class_id or not exam_id:
+            return Response(
+                {"error": "class_id and exam_id are required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        routines = ExamRoutine.objects.filter(
+            exam_id=exam_id,
+            class_subject__academic_class_id=class_id
+        ).select_related(
+            "class_subject__subject",
+            "class_subject__academic_class"
+        ).order_by("order", "exam_date")
+
+        if not routines.exists():
+            return Response(
+                {"message": "No routine found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        serializer = ExamRoutineSerializer(routines, many=True)
+
+        return Response({
+            "class_id": class_id,
+            "exam_id": exam_id,
+            "total_subjects": routines.count(),
+            "routine": serializer.data
         })

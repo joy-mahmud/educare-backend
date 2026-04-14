@@ -86,7 +86,31 @@ class StudentResult(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
 
+# academics/models.py
 
+class Exam(models.Model):
+    name = models.CharField(max_length=100)  # e.g. "First Terminal Exam"
+    academic_class = models.ForeignKey(AcademicClass, on_delete=models.CASCADE)
+    year = models.CharField(max_length=10)
 
+    def __str__(self):
+        return f"{self.name} - {self.academic_class}"
 
+class ExamRoutine(models.Model):
+    exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name="routines")
+
+    class_subject = models.ForeignKey(
+        ClassSubject,
+        on_delete=models.CASCADE
+    )
+
+    exam_date = models.DateField()
+    start_time = models.TimeField()
+    end_time = models.TimeField(null=True)
+
+    full_marks = models.IntegerField(default=100)
+    order = models.IntegerField(default=0)
+
+    def __str__(self):
+        return f"{self.exam} - {self.class_subject.subject.name}"
 
