@@ -4,6 +4,7 @@ from rest_framework import status
 from .models import ClassSubject,StudentResult,ExamRoutine
 from .serializers import ClassSubjectSerializer,BulkResultCreateSerializer,ResultViewSerializer,StudentExamResultSerializer,ExamRoutineSerializer
 from django.db.models import Max, OuterRef, Subquery,Avg,Sum
+from students.models import Student
 from .utils import calculate_final_gpa,build_subjects_response,gpa_to_grade
 class ClassSubjectAPIView(APIView):
 
@@ -177,3 +178,153 @@ class ExamRoutineListAPIView(APIView):
             "total_subjects": routines.count(),
             "routine": serializer.data
         })
+
+import io
+from django.http import FileResponse
+from rest_framework.response import Response
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak, Image
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.pagesizes import A4
+from reportlab.lib import colors
+from reportlab.lib.units import inch
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+import os
+from django.conf import settings
+
+# Register a Unicode font for Bengali support
+# Make sure the .ttf file is in your project directory
+# pdfmetrics.registerFont(TTFont('Kalpurush', 'path/to/kalpurush.ttf'))
+FONT_PATH = os.path.join(settings.BASE_DIR, 'static', 'fonts', 'kalpurush.ttf')
+
+pdfmetrics.registerFont(TTFont('Kalpurush', FONT_PATH))
+class GenerateAllStudentAdmitCard(APIView):
+    def get(self, request):
+        class_id = request.GET.get("class_id")
+        exam_id = request.GET.get("exam_id")
+
+        if not class_id or not exam_id:
+            return Response({"error": "class_id and exam_id are required"}, status=400)
+
+        students = Student.objects.filter(studentClass_id=class_id)
+        routines = ExamRoutine.objects.filter(
+            exam_id=exam_id,
+            class_subject__academic_class_id=class_id
+        ).select_related("class_subject__subject", "exam").order_by("order")
+
+        if not routines.exists():
+            return Response({"error": "No routine found"}, status=404)
+
+        buffer = io.BytesIO()
+        # Narrow margins to fit the design
+        doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
+        styles = getSampleStyleSheet()
+        
+        # Custom Styles
+        header_style = ParagraphStyle('HeaderStyle', parent=styles['Title'], fontSize=18, textColor=colors.white)
+        bengali_style = ParagraphStyle(
+            'BengaliStyle', 
+            parent=styles['Normal'], 
+            fontSize=14, 
+            textColor=colors.white, 
+            alignment=1,
+            fontName='Kalpurush' # <--- IMPORTANT
+        )
+        label_style = ParagraphStyle('LabelStyle', parent=styles['Normal'], fontSize=10, leading=14)
+
+        elements = []
+
+        for i, student in enumerate(students):
+            # 1. BLUE HEADER BOX
+            # Using a Table to create the blue background effect
+            header_content = [
+                [Paragraph("<b>Our Educational Institute</b>", header_style)],
+                [Paragraph("আমাদের শিক্ষা প্রতিষ্ঠান", bengali_style)]
+            ]
+            header_table = Table(header_content, colWidths=[doc.width])
+            header_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#1a368d')),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 15),
+                ('TOPPADDING', (0, 0), (-1, -1), 15),
+            ]))
+            elements.append(header_table)
+            elements.append(Spacer(1, 20))
+
+            # 2. EXAM INFO & PHOTO ROW
+            # Left: Roll box, Center: Title/Admit Card, Right: Photo Box
+            roll_box = Table([["Exam Roll:"]], colWidths=[1*inch], rowHeights=[0.4*inch])
+            roll_box.setStyle(TableStyle([('BOX', (0,0), (-1,-1), 1, colors.black), ('ALIGN', (0,0), (-1,-1), 'CENTER'), ('VALIGN', (0,0), (-1,-1), 'MIDDLE')]))
+            
+            mid_content = [
+                [Paragraph(f"<b>Exam - {routines.first().exam.name}</b>", styles['Heading2'])],
+                [Spacer(1, 5)],
+                [Table([["Admit Card"]], colWidths=[1*inch], style=[('BOX', (0,0), (-1,-1), 1, colors.black), ('ALIGN', (0,0), (-1,-1), 'CENTER')])]
+            ]
+            mid_table = Table(mid_content)
+
+            photo_box = Table([[""]], colWidths=[1.2*inch], rowHeights=[1.4*inch])
+            photo_box.setStyle(TableStyle([('BOX', (0,0), (-1,-1), 1, colors.black)]))
+
+            top_row = Table([[roll_box, mid_table, photo_box]], colWidths=[1.5*inch, 3*inch, 1.5*inch])
+            top_row.setStyle(TableStyle([('VALIGN', (0,0), (-1,-1), 'TOP'), ('ALIGN', (1,0), (1,0), 'CENTER')]))
+            elements.append(top_row)
+            elements.append(Spacer(1, 20))
+
+            # 3. STUDENT BIODATA
+            bio_data = [
+                [Paragraph(f"<b>Name:</b> {student.studentName}", label_style)],
+                [Paragraph(f"<b>Father:</b> {getattr(student, 'fatherName', 'N/A')}", label_style)],
+                [Paragraph(f"<b>Mother:</b> {getattr(student, 'motherName', 'N/A')}", label_style)],
+                [Paragraph(f"<b>Class:</b> {student.studentClass.name if student.studentClass else ''}", label_style)],
+                [Paragraph(f"<b>Gender:</b> {getattr(student, 'gender', 'Male')}", label_style)],
+                [Paragraph(f"<b>Mobile:</b> {student.mobile}", label_style)],
+            ]
+            bio_table = Table(bio_data, colWidths=[doc.width])
+            bio_table.setStyle(TableStyle([('LEFTPADDING', (0,0), (-1,-1), 0)]))
+            elements.append(bio_table)
+            elements.append(Spacer(1, 15))
+
+            # 4. EXAM ROUTINE
+            elements.append(Paragraph("<b>Exam Routine</b>", styles['Heading4']))
+            elements.append(Spacer(1, 5))
+            
+            routine_header = ["Date", "Day", "Start Time", "End Time", "Subject", "Marks"]
+            routine_rows = [routine_header]
+            for r in routines:
+                routine_rows.append([
+                    r.exam_date.strftime("%Y-%m-%d"),
+                    r.exam_date.strftime("%A"),
+                    r.start_time.strftime("%H:%M:%S"),
+                    r.end_time.strftime("%H:%M:%S"),
+                    r.class_subject.subject.name,
+                    r.full_marks
+                ])
+
+            rt = Table(routine_rows, colWidths=[1*inch, 0.8*inch, 1*inch, 1*inch, 1.5*inch, 0.7*inch])
+            rt.setStyle(TableStyle([
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('FONTSIZE', (0, 0), (-1, -1), 9),
+            ]))
+            elements.append(rt)
+            elements.append(Spacer(1, 60)) # Space for signatures
+
+            # 5. SIGNATURE SECTION
+            sig_data = [[
+                Paragraph("<hr/>Student Signature", label_style),
+                "",
+                Paragraph("<hr/>Principal Signature", label_style)
+            ]]
+            sig_table = Table(sig_data, colWidths=[2*inch, 2.5*inch, 2*inch])
+            sig_table.setStyle(TableStyle([('ALIGN', (0,0), (0,0), 'LEFT'), ('ALIGN', (2,0), (2,0), 'RIGHT')]))
+            elements.append(sig_table)
+
+            if i != len(students) - 1:
+                elements.append(PageBreak())
+
+        doc.build(elements)
+        buffer.seek(0)
+        return FileResponse(buffer, as_attachment=True, filename="admit_cards.pdf")
