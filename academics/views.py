@@ -328,3 +328,102 @@ class GenerateAllStudentAdmitCard(APIView):
         doc.build(elements)
         buffer.seek(0)
         return FileResponse(buffer, as_attachment=True, filename="admit_cards.pdf")
+    
+class GenerateStudentList(APIView):
+    def get(self, request):
+        class_id = request.GET.get("class_id")
+  
+        if not class_id:
+            return Response({"error": "class_id is required"}, status=400)
+
+        # Optimization: select_related fetches class/group names in one query
+        students = Student.objects.filter(
+            studentClass_id=class_id
+        ).select_related('studentClass', 'group').order_by('rollNo')
+
+        if not students.exists():
+            return Response({"error": "No students found"}, status=404)
+
+        # 1. Setup the PDF Buffer and Document
+        buffer = io.BytesIO()
+        doc = SimpleDocTemplate(
+            buffer, 
+            pagesize=A4,
+            rightMargin=50, leftMargin=50, topMargin=50, bottomMargin=50
+        )
+        elements = []
+        styles = getSampleStyleSheet()
+
+        # 2. Define Custom Styles
+        title_style = ParagraphStyle(
+            'TitleStyle',
+            parent=styles['Title'],
+            fontSize=22,
+            textColor=colors.HexColor('#1a368d'),
+            spaceAfter=10
+        )
+        
+        subtitle_style = ParagraphStyle(
+            'SubtitleStyle',
+            parent=styles['Normal'],
+            fontSize=12,
+            alignment=1, # Center
+            spaceAfter=30,
+            textColor=colors.grey
+        )
+
+        # 3. Add Header Content
+        elements.append(Paragraph("Our Educational Institute", title_style))
+        elements.append(Paragraph(f"Official Student List - Class: {students.first().studentClass.name}", subtitle_style))
+
+        # 4. Define Table Data
+        # Header Row
+        table_data = [["Roll No", "Student Name", "Class", "Group"]]
+
+        # Data Rows
+        for student in students:
+            table_data.append([
+                str(student.rollNo),
+                student.studentName,
+                student.studentClass.name if student.studentClass else "N/A",
+                student.group.name if student.group else "N/A"
+            ])
+
+        # 5. Create and Style the Table
+        # Widths: Roll (0.7"), Name (2.8"), Class (1.0"), Group (1.0")
+        student_table = Table(table_data, colWidths=[0.7*inch, 2.8*inch, 1.0*inch, 1.0*inch])
+
+        student_table.setStyle(TableStyle([
+            # Header Styling
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1a368d')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 12),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+
+            # Body Styling
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 10),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('ALIGN', (0, 1), (0, -1), 'CENTER'),   # Center Roll Nos
+            ('ALIGN', (1, 1), (1, -1), 'LEFT'),     # Left align Names
+            ('ALIGN', (2, 1), (-1, -1), 'CENTER'),  # Center Class/Group
+            
+            # Alternating Row Colors (Zebra Stripes)
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.whitesmoke]),
+        ]))
+
+        elements.append(student_table)
+
+        # 6. Build the PDF
+        doc.build(elements)
+        buffer.seek(0)
+
+        return FileResponse(
+            buffer, 
+            as_attachment=True, 
+            filename=f"Student_List_Class_{class_id}.pdf"
+        )
+
